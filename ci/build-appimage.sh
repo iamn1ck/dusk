@@ -13,6 +13,8 @@ cp -r build/install/!(*.*) build/appdir/usr/bin
 cp -r platforms/freedesktop/{16x16,32x32,48x48,64x64,128x128,256x256,512x512,1024x1024} build/appdir/usr/share/icons/hicolor
 cp platforms/freedesktop/dusk.desktop build/appdir/usr/share/applications
 
+OPENXR_LIB=$(find "$GITHUB_WORKSPACE"/build -name "libopenxr_loader.so.1" | head -n 1)
+
 cd build/install
 VERSION="$DUSK_VERSION" NO_STRIP=1 "$RUNNER_WORKSPACE"/linuxdeploy-$(uname -m).AppImage \
-  -l /usr/lib/x86_64-linux-gnu/libusb-1.0.so --appdir "$GITHUB_WORKSPACE"/build/appdir --output appimage
+  -l /usr/lib/x86_64-linux-gnu/libusb-1.0.so -l "$OPENXR_LIB" --appdir "$GITHUB_WORKSPACE"/build/appdir --output appimage
