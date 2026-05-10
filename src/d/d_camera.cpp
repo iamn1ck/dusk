@@ -31,8 +31,10 @@
 #if TARGET_PC
 #include "dusk/frame_interpolation.h"
 #include "dusk/logging.h"
+#include "dusk/vr.hpp"
 #include "imgui.h"
 #endif
+
 
 namespace {
 
@@ -11376,8 +11378,46 @@ static int camera_draw(camera_process_class* i_this) {
 #endif
 
     C_MTXPerspective(process->view.projMtx, process->view.fovy, process->view.aspect, process->view.near_, process->view.far_);
+
+#if TARGET_PC
+    // --- VR head-pose override ---
+    // If OpenXR is active, rotate the camera look direction by the HMD orientation.
+    // The eye position is left unchanged so the game's positional camera logic still
+    // governs where the player sees from; we only override the look direction.
+    {
+        float qx, qy, qz, qw;
+        if (dusk::vr::get_head_pose(qx, qy, qz, qw)) {
+            const cXyz& eye = process->view.lookat.eye;
+
+            // Rotate v by quaternion (qx,qy,qz,qw) using the efficient formula:
+            //   t  = 2 * (q.xyz cross v)
+            //   v' = v + qw*t + (q.xyz cross t)
+            auto rotate_by_quat = [&](float vx, float vy, float vz) -> cXyz {
+                // t = 2 * cross(q.xyz, v)
+                float tx = 2.0f * (qy * vz - qz * vy);
+                float ty = 2.0f * (qz * vx - qx * vz);
+                float tz = 2.0f * (qx * vy - qy * vx);
+                // v' = v + qw*t + cross(q.xyz, t)
+                return cXyz(
+                    vx + qw * tx + (qy * tz - qz * ty),
+                    vy + qw * ty + (qz * tx - qx * tz),
+                    vz + qw * tz + (qx * ty - qy * tx)
+                );
+            };
+
+            // OpenXR: forward = -Z, up = +Y (right-handed, matches game coords)
+            cXyz fwd = rotate_by_quat(0.0f, 0.0f, -1.0f);
+            cXyz up  = rotate_by_quat(0.0f, 1.0f,  0.0f);
+
+            process->view.lookat.center = cXyz(eye.x + fwd.x, eye.y + fwd.y, eye.z + fwd.z);
+            process->view.lookat.up     = up;
+        }
+    }
+#endif
+
     mDoMtx_lookAt(process->view.viewMtx, &process->view.lookat.eye, &process->view.lookat.center,
                   &process->view.lookat.up, process->view.bank);
+
 
 #if WIDESCREEN_SUPPORT
     mDoGph_gInf_c::setWideZoomProjection(process->view.projMtx);

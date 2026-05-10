@@ -1518,6 +1518,7 @@ set(DUSK_FILES
         src/dusk/discord.hpp
         src/dusk/discord_presence.cpp
         src/dusk/version.cpp
+        src/dusk/vr.cpp
 )
 
 set(DUSK_HTTP_BACKEND_FILES
