@@ -381,6 +381,14 @@ void begin_presentation_camera() {
         float qx, qy, qz, qw;
         if (dusk::vr::get_head_pose(qx, qy, qz, qw)) {
             const cXyz& eye = view->lookat.eye;
+            const cXyz& orig_center = view->lookat.center;
+            const cXyz& orig_up = view->lookat.up;
+
+            // Calculate game's intended direction vectors (orthonormal basis)
+            cXyz game_fwd = (orig_center - eye).norm();
+            cXyz game_right = game_fwd.getCrossProduct(orig_up).norm();
+            cXyz game_up = game_right.getCrossProduct(game_fwd).norm();
+
             auto rotate_by_quat = [&](float vx, float vy, float vz) -> cXyz {
                 float tx = 2.0f * (qy * vz - qz * vy);
                 float ty = 2.0f * (qz * vx - qx * vz);
@@ -391,10 +399,18 @@ void begin_presentation_camera() {
                     vz + qw * tz + (qx * ty - qy * tx)
                 );
             };
-            cXyz fwd = rotate_by_quat(0.0f, 0.0f, -1.0f);
-            cXyz up  = rotate_by_quat(0.0f, 1.0f,  0.0f);
-            view->lookat.center = cXyz(eye.x + fwd.x, eye.y + fwd.y, eye.z + fwd.z);
-            view->lookat.up     = up;
+
+            // HMD-local vectors (OpenXR: identity forward = -Z, up = +Y)
+            cXyz local_fwd = rotate_by_quat(0.0f, 0.0f, -1.0f);
+            cXyz local_up  = rotate_by_quat(0.0f, 1.0f,  0.0f);
+
+            // Transform HMD-local vectors to world space using the game's orientation as the base
+            // Basis: X = game_right, Y = game_up, Z = -game_fwd
+            cXyz world_fwd = game_right * local_fwd.x + game_up * local_fwd.y + (game_fwd * -1.0f) * local_fwd.z;
+            cXyz world_up  = game_right * local_up.x  + game_up * local_up.y  + (game_fwd * -1.0f) * local_up.z;
+
+            view->lookat.center = eye + world_fwd;
+            view->lookat.up     = world_up;
         }
     }
 

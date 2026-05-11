@@ -11391,6 +11391,13 @@ static int camera_draw(camera_process_class* i_this) {
         float qx, qy, qz, qw;
         if (dusk::vr::get_head_pose(qx, qy, qz, qw)) {
             const cXyz& eye = process->view.lookat.eye;
+            const cXyz& orig_center = process->view.lookat.center;
+            const cXyz& orig_up = process->view.lookat.up;
+
+            // Calculate game's intended direction vectors (orthonormal basis)
+            cXyz game_fwd = (orig_center - eye).norm();
+            cXyz game_right = game_fwd.getCrossProduct(orig_up).norm();
+            cXyz game_up = game_right.getCrossProduct(game_fwd).norm();
 
             // Rotate v by quaternion (qx,qy,qz,qw) using the efficient formula:
             //   t  = 2 * (q.xyz cross v)
@@ -11404,16 +11411,21 @@ static int camera_draw(camera_process_class* i_this) {
                 return cXyz(
                     vx + qw * tx + (qy * tz - qz * ty),
                     vy + qw * ty + (qz * tx - qx * tz),
-                    vz + qw * tz + (qx * ty - qy * tx)
+                    vz + qw * tz + (qx * ty - qy * vx)
                 );
             };
 
-            // OpenXR: forward = -Z, up = +Y (right-handed, matches game coords)
-            cXyz fwd = rotate_by_quat(0.0f, 0.0f, -1.0f);
-            cXyz up  = rotate_by_quat(0.0f, 1.0f,  0.0f);
+            // HMD-local vectors (OpenXR: identity forward = -Z, up = +Y)
+            cXyz local_fwd = rotate_by_quat(0.0f, 0.0f, -1.0f);
+            cXyz local_up  = rotate_by_quat(0.0f, 1.0f,  0.0f);
 
-            process->view.lookat.center = cXyz(eye.x + fwd.x, eye.y + fwd.y, eye.z + fwd.z);
-            process->view.lookat.up     = up;
+            // Transform HMD-local vectors to world space using the game's orientation as the base
+            // Basis: X = game_right, Y = game_up, Z = -game_fwd
+            cXyz world_fwd = game_right * local_fwd.x + game_up * local_fwd.y + (game_fwd * -1.0f) * local_fwd.z;
+            cXyz world_up  = game_right * local_up.x  + game_up * local_up.y  + (game_fwd * -1.0f) * local_up.z;
+
+            process->view.lookat.center = eye + world_fwd;
+            process->view.lookat.up     = world_up;
         }
     }
 #endif
