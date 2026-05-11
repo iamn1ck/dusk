@@ -64,7 +64,7 @@ jobs:
           vcpkg install freetype:${{matrix.vcpkg_arch}}-windows-static zstd:${{matrix.vcpkg_arch}}-windows-static
 
       - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.2.1
+        uses: humbletim/install-vulkan-sdk@v1.2
         with:
           version: latest
           cache: true
