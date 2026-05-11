@@ -61,13 +61,7 @@ jobs:
       - name: Install dependencies
         run: |
           choco install ninja
-          vcpkg install freetype:${{matrix.vcpkg_arch}}-windows-static zstd:${{matrix.vcpkg_arch}}-windows-static
-
-      - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.2
-        with:
-          version: latest
-          cache: true
+          vcpkg install freetype:${{matrix.vcpkg_arch}}-windows-static zstd:${{matrix.vcpkg_arch}}-windows-static vulkan:${{matrix.vcpkg_arch}}-windows-static
 
       - name: Configure CMake
         run: cmake --preset x-windows-ci-${{matrix.preset}}
