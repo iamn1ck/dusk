@@ -296,7 +296,11 @@ public:
 #if PLATFORM_GCN
         JASMemPool<T>& memPool_ = getMemPool_();
 #endif
-        return memPool_.alloc(n);
+        void* ptr = memPool_.alloc(n);
+        if (ptr == NULL) {
+            JUT_PANIC(300, "JASPoolAllocObject: Pool exhaustion\n");
+        }
+        return ptr;
     }
     static void* operator new(size_t n, void* ptr) {
         return ptr;
@@ -411,7 +415,11 @@ public:
 #if PLATFORM_GCN
         JASMemPool_MultiThreaded<T>& memPool_ = getMemPool();
 #endif
-        return memPool_.alloc(n);
+        void* ptr = memPool_.alloc(n);
+        if (ptr == NULL) {
+            JUT_PANIC(415, "JASPoolAllocObject_MultiThreaded: Pool exhaustion\n");
+        }
+        return ptr;
     }
     static void* operator new(size_t n, void* ptr) {
         return ptr;
