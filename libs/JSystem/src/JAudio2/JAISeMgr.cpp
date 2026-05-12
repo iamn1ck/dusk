@@ -58,7 +58,7 @@ void JAISeCategoryMgr::JAISeMgr_freeDeadSe_() {
 bool JAISeCategoryMgr::JAISeMgr_acceptsNewSe_(u32 priority) const {
     s32 maxSe = getMaxSe();
     if (maxSe <= 0) {
-        return 1;
+        return 0;
     } 
 
     s32 stopCount = 0;

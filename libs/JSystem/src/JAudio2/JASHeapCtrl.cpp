@@ -269,6 +269,8 @@ void JASGenericMemPool::newMemPool(u32 n, int param_1) {
 
 void* JASGenericMemPool::alloc(u32 param_0) {
     if (field_0x0 == NULL) {
+        OSReport("JASGenericMemPool: Pool exhaustion! Halting.\n");
+        *(volatile int*)0 = 0; // Guaranteed crash
         return NULL;
     }
     void* chunk = field_0x0;
