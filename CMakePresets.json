@@ -249,11 +249,22 @@
           "type": "BOOL",
           "value": false
         },
-        "CMAKE_DISABLE_FIND_PACKAGE_PkgConfig": {
+        "CMAKE_DISABLE_FIND_PACKAGE_BZip2": {
           "type": "BOOL",
           "value": true
         },
-        "CMAKE_IGNORE_PREFIX_PATH": "/opt/homebrew"
+        "CMAKE_DISABLE_FIND_PACKAGE_LibLZMA": {
+          "type": "BOOL",
+          "value": true
+        },
+        "CMAKE_DISABLE_FIND_PACKAGE_zstd": {
+          "type": "BOOL",
+          "value": true
+        },
+        "CMAKE_DISABLE_FIND_PACKAGE_Freetype": {
+          "type": "BOOL",
+          "value": true
+        }
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
@@ -318,11 +329,7 @@
       "cacheVariables": {
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install",
         "CMAKE_TOOLCHAIN_FILE": "$env{ANDROID_HOME}/ndk/$env{ANDROID_NDK_VERSION}/build/cmake/android.toolchain.cmake",
-        "ANDROID_PLATFORM": "android-28",
-        "BUILD_SHARED_LIBS": {
-          "type": "BOOL",
-          "value": false
-        }
+        "ANDROID_PLATFORM": "android-28"
       }
     },
     {
@@ -409,7 +416,7 @@
         },
         "CMAKE_OSX_DEPLOYMENT_TARGET": "11.0",
         "CMAKE_IGNORE_PREFIX_PATH": "/opt/homebrew",
-        "BUILD_SHARED_LIBS": {
+        "DUSK_MOVIE_SUPPORT": {
           "type": "BOOL",
           "value": false
         }
@@ -442,7 +449,11 @@
       ],
       "cacheVariables": {
         "CMAKE_C_COMPILER_LAUNCHER": "sccache",
-        "CMAKE_CXX_COMPILER_LAUNCHER": "sccache"
+        "CMAKE_CXX_COMPILER_LAUNCHER": "sccache",
+        "DUSK_MOVIE_SUPPORT": {
+          "type": "BOOL",
+          "value": false
+        }
       }
     },
     {
@@ -452,7 +463,11 @@
       ],
       "cacheVariables": {
         "CMAKE_C_COMPILER_LAUNCHER": "sccache",
-        "CMAKE_CXX_COMPILER_LAUNCHER": "sccache"
+        "CMAKE_CXX_COMPILER_LAUNCHER": "sccache",
+        "DUSK_MOVIE_SUPPORT": {
+          "type": "BOOL",
+          "value": false
+        }
       }
     },
     {
@@ -536,7 +551,7 @@
       "description": "iOS release build with debug info",
       "displayName": "iOS RelWithDebInfo",
       "targets": [
-        "dusklight"
+        "dusk"
       ]
     },
     {
@@ -545,7 +560,7 @@
       "description": "tvOS release build with debug info",
       "displayName": "tvOS RelWithDebInfo",
       "targets": [
-        "dusklight"
+        "dusk"
       ]
     },
     {
@@ -554,7 +569,7 @@
       "description": "Android arm64-v8a release build with debug info",
       "displayName": "Android arm64-v8a RelWithDebInfo",
       "targets": [
-        "dusklight"
+        "dusk"
       ]
     },
     {
@@ -563,7 +578,7 @@
       "description": "Android x86_64 release build with debug info",
       "displayName": "Android x86_64 RelWithDebInfo",
       "targets": [
-        "dusklight"
+        "dusk"
       ]
     },
     {
@@ -572,7 +587,7 @@
       "description": "(Internal) Android CI arm64-v8a",
       "displayName": "(Internal) Android CI arm64-v8a",
       "targets": [
-        "dusklight"
+        "dusk"
       ]
     },
     {

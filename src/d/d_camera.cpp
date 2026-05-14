@@ -31,9 +31,10 @@
 #if TARGET_PC
 #include "dusk/frame_interpolation.h"
 #include "dusk/logging.h"
-#include "dusk/action_bindings.h"
+#include "dusk/vr.hpp"
 #include "imgui.h"
 #endif
+
 
 namespace {
 
@@ -839,12 +840,6 @@ void dCamera_c::updatePad() {
     mTrigB = mDoCPd_c::getTrigB(mPadID) ? true : false;
 
     #if TARGET_PC
-    // If our custom action binding is triggered, and we're not already in first person, go into first person
-    if (dusk::getActionBindTrig(dusk::ActionBinds::FIRST_PERSON_CAMERA, mPadID) && mGear != -1) {
-        setComStat(0x1000);
-        mGear = 0;
-    }
-
     if (mCamParam.mManualMode) {
         return;
     }
@@ -884,8 +879,7 @@ void dCamera_c::updatePad() {
 
         if (mPadInfo.mCStick.mLastPosY < -mCamSetup.mCStick.SwTHH()) {
             if (mCStickYState != -1) {
-                // Don't use regular first person trigger if custom mapping is set
-                if (mGear == -1 && mCurMode == 4 IF_DUSK(&& !dusk::isActionBound(dusk::ActionBinds::FIRST_PERSON_CAMERA, mPadID))) {
+                if (mGear == -1 && mCurMode == 4) {
                     mGear = 0;
                     setComStat(0x2000);
                 } else if (mGear == 0 && sp6C) {
@@ -896,8 +890,7 @@ void dCamera_c::updatePad() {
             mCStickYState = -1;
         } else if (mPadInfo.mCStick.mLastPosY > mCamSetup.mCStick.SwTHH()) {
             if (mCStickYState != 1) {
-                // Don't use regular first person trigger if custom mapping is set
-                if (mGear == 0 && sp6B IF_DUSK(&& !dusk::isActionBound(dusk::ActionBinds::FIRST_PERSON_CAMERA, mPadID))) {
+                if (mGear == 0 && sp6B) {
                     setComStat(0x1000);
                 } else if (mGear == 1) {
                     mGear = 0;
@@ -7658,10 +7651,9 @@ bool dCamera_c::freeCamera() {
     f32 magnitude = sqrt(mPadInfo.mCStick.mLastPosX * mPadInfo.mCStick.mLastPosX + mPadInfo.mCStick.mLastPosY * mPadInfo.mCStick.mLastPosY);
 
     // If we aren't in manual cam mode, don't trigger it if the player tries to hit C-up
-    // for first person unless they have first person bound to a custom binding
-    if ((dusk::isActionBound(dusk::ActionBinds::FIRST_PERSON_CAMERA, mPadID) && mPadInfo.mCStick.mLastPosY != 0) ||
-        mPadInfo.mCStick.mLastPosX != 0 || mPadInfo.mCStick.mLastPosY < 0 || (mCamParam.mManualMode == 1 && mPadInfo.mCStick.mLastPosY != 0))
-    {
+    // for first person
+    if (mPadInfo.mCStick.mLastPosX != 0 || mPadInfo.mCStick.mLastPosY < 0 ||
+        (mCamParam.mManualMode == 1 && mPadInfo.mCStick.mLastPosY != 0)) {
         mCamParam.mManualMode = 1;
         camMovement = camMovement.normalize();
         camMovement.y *= dusk::getSettings().game.invertCameraYAxis ? 1.0f : -1.0f;
@@ -11244,62 +11236,6 @@ cXyz dCamera_c::Center() {
     return mCenter + mShake.field_0x24;
 }
 
-#ifdef TARGET_PC
-f32 get_target_trim_height(camera_process_class* i_this) {
-    const auto camera = &i_this->mCamera;
-    if (camera->mCurState != 2) {
-        switch (camera->mTrimSize) {
-        case 0:
-        case 4:
-            return 0.0f;
-        case 1:
-            return camera->mCamSetup.VistaTrimHeight();
-        case 2:
-        case 3:
-            return camera->mCamSetup.CinemaScopeTrimHeight();
-        default:
-            return camera->mTrimHeight;
-        }
-    }
-    return camera->mTrimHeight;
-}
-
-void widezoom_correction(camera_process_class* i_this, float trim_height) {
-    camera_class* camera = (camera_class*)i_this;
-    dDlst_window_c* window = get_window(camera);
-    view_port_class* viewport = window->getViewPort();
-
-    auto trim_width = 0.0f;
-
-    if (mDoGph_gInf_c::isWideZoom()) {
-        const auto target_ar = FB_WIDTH_BASE / (FB_HEIGHT_BASE - trim_height * 2.0f);
-        const auto target_ar_real =
-            FB_WIDTH_BASE / (FB_HEIGHT_BASE - get_target_trim_height(i_this) * 2.0f);
-        const auto current_ar = camera->view.aspect;
-
-        if (current_ar < target_ar) {
-            trim_height = FB_HEIGHT_BASE / 2.0f * (1.0f - current_ar / target_ar);
-        } else {
-            trim_height = 0.0f;
-            trim_width = FB_WIDTH_BASE / 2.0f * (1.0f - target_ar_real / current_ar);
-        }
-
-        if (dusk::frame_interp::is_sim_frame()) {
-            constexpr auto base_ar =
-                static_cast<f32>(FB_WIDTH_BASE) / static_cast<f32>(FB_HEIGHT_BASE);
-            const auto ar_corr = base_ar / std::min(current_ar, target_ar_real);
-            camera->view.fovy =
-                MTXRadToDeg(2.0f * atanf(tanf(MTXDegToRad(camera->view.fovy) * 0.5f) * ar_corr));
-        }
-    }
-
-    trim_width *= viewport->width / FB_WIDTH_BASE;
-    trim_height *= viewport->height / FB_HEIGHT_BASE;
-    window->setScissor(trim_width, trim_height, viewport->width - trim_width * 2.0f,
-        viewport->height - trim_height * 2.0f);
-}
-#endif
-
 static int camera_execute(camera_process_class* i_this) {
     preparation(i_this);
 
@@ -11320,28 +11256,6 @@ static int camera_execute(camera_process_class* i_this) {
     store(i_this);
 
 #ifdef TARGET_PC
-    widezoom_correction(i_this, i_this->mCamera.TrimHeight());
-
-    if (dusk::getSettings().game.enableFrameInterpolation) {
-        dusk::frame_interp::add_interpolation_callback([](bool _, void* pUserWork) {
-            const auto i_this = static_cast<camera_process_class*>(pUserWork);
-            const auto camera = &i_this->mCamera;
-
-            const auto trim_size = camera->mTrimSize;
-
-            if (camera->mCurState != 2 && trim_size >= 0 && trim_size <= 3) {
-                // derive trim height at previous tick using current camera state
-                const auto target = get_target_trim_height(i_this);
-                const auto step = dusk::frame_interp::get_interpolation_step();
-                const auto cur = camera->TrimHeight();
-                const auto prev = (4.0f * cur - target) / 3.0f; 
-                const auto trim_height = prev + (cur - prev) * step;
-
-                widezoom_correction(i_this, trim_height);
-            }
-        }, i_this);
-    }
-
     // record new camera for our sim frame
     dusk::frame_interp::record_camera(i_this, get_camera_id(i_this));
     // interpolate the view now so that this sim frame's view matrix matches what
@@ -11352,6 +11266,26 @@ static int camera_execute(camera_process_class* i_this) {
     view_setup(i_this);
     return 1;
 }
+
+#ifdef TARGET_PC
+void set_ar_corrected_trim(dDlst_window_c* window, float trim_height) {
+    const auto viewport = window->getViewPort();
+    
+    if (mDoGph_gInf_c::isWideZoom()) {
+        const auto target_ar = FB_WIDTH / (FB_HEIGHT - trim_height * 2.0f);
+        const auto current_ar = mDoGph_gInf_c::m_safeWidthF / mDoGph_gInf_c::m_safeHeightF;
+
+        if (current_ar < target_ar) {
+            trim_height = FB_HEIGHT / 2.0f * (1.0f - current_ar / target_ar);
+        } else {
+            trim_height = 0.0f;
+        }
+    }
+
+    trim_height *= viewport->height / FB_HEIGHT;
+    window->setScissor(0.0f, trim_height, viewport->width, viewport->height - trim_height * 2.0f);
+}
+#endif
 
 static int camera_draw(camera_process_class* i_this) {
     camera_class* a_this = (camera_class*)i_this;
@@ -11405,16 +11339,100 @@ static int camera_draw(camera_process_class* i_this) {
     }
 #endif
 
-#if !TARGET_PC
-    // trim handling moved to camera_execute for PC
+#if TARGET_PC
+    set_ar_corrected_trim(window, body->TrimHeight());
+
+    if (dusk::getSettings().game.enableFrameInterpolation) {
+        dusk::frame_interp::add_interpolation_callback([](bool _, void* pUserWork) {
+            const auto i_this = static_cast<camera_process_class*>(pUserWork);
+            const auto camera = &i_this->mCamera;
+
+            const auto trim_size = camera->mTrimSize;
+
+            if (camera->mCurState != 2 && trim_size >= 0 && trim_size <= 3) {
+                // derive trim height at previous tick using current camera state
+                f32 target;
+                switch (trim_size) {
+                    case 0:
+                        target = 0.0f;
+                        break;
+                    case 1:
+                        target = camera->mCamSetup.VistaTrimHeight();
+                        break;
+                    case 2:
+                    case 3:
+                        target = camera->mCamSetup.CinemaScopeTrimHeight();
+                        break;
+                }
+
+                const auto step = dusk::frame_interp::get_interpolation_step();
+                const auto cur = camera->TrimHeight();
+                const auto prev = (4.0f * cur - target) / 3.0f; 
+                const auto trim_height = prev + (cur - prev) * step;
+
+                set_ar_corrected_trim(get_window((camera_class*)i_this), trim_height);
+            }
+        }, i_this);
+    }
+#else
     int trim_height = body->TrimHeight();
 
     window->setScissor(0.0f, trim_height, FB_WIDTH, FB_HEIGHT - trim_height * 2.0f);
 #endif
 
     C_MTXPerspective(process->view.projMtx, process->view.fovy, process->view.aspect, process->view.near_, process->view.far_);
+
+#if TARGET_PC
+    // --- VR head-pose override ---
+    // If OpenXR is active, rotate the camera look direction by the HMD orientation.
+    // The eye position is left unchanged so the game's positional camera logic still
+    // governs where the player sees from; we only override the look direction.
+    {
+        float qx, qy, qz, qw;
+        if (dusk::vr::get_head_pose(qx, qy, qz, qw)) {
+            const cXyz& eye = process->view.lookat.eye;
+            const cXyz& orig_center = process->view.lookat.center;
+            const cXyz& orig_up = process->view.lookat.up;
+
+            // Calculate game's intended direction vectors (orthonormal basis)
+            cXyz game_fwd = (orig_center - eye).norm();
+            cXyz game_right = game_fwd.getCrossProduct(orig_up).norm();
+            cXyz game_up = game_right.getCrossProduct(game_fwd).norm();
+
+            // Rotate v by quaternion (qx,qy,qz,qw) using the efficient formula:
+            //   t  = 2 * (q.xyz cross v)
+            //   v' = v + qw*t + (q.xyz cross t)
+            auto rotate_by_quat = [&](float vx, float vy, float vz) -> cXyz {
+                // t = 2 * cross(q.xyz, v)
+                float tx = 2.0f * (qy * vz - qz * vy);
+                float ty = 2.0f * (qz * vx - qx * vz);
+                float tz = 2.0f * (qx * vy - qy * vx);
+                // v' = v + qw*t + cross(q.xyz, t)
+                return cXyz(
+                    vx + qw * tx + (qy * tz - qz * ty),
+                    vy + qw * ty + (qz * tx - qx * tz),
+                    vz + qw * tz + (qx * ty - qy * vx)
+                );
+            };
+
+            // HMD-local vectors (OpenXR: identity forward = -Z, up = +Y)
+            cXyz local_fwd = rotate_by_quat(0.0f, 0.0f, -1.0f);
+            cXyz local_up  = rotate_by_quat(0.0f, 1.0f,  0.0f);
+
+            // Transform HMD-local vectors to world space using the game's orientation as the base
+            // Basis: X = game_right, Y = game_up, Z = -game_fwd
+            cXyz world_fwd = game_right * local_fwd.x + game_up * local_fwd.y + (game_fwd * -1.0f) * local_fwd.z;
+            cXyz world_up  = game_right * local_up.x  + game_up * local_up.y  + (game_fwd * -1.0f) * local_up.z;
+
+            process->view.lookat.center = eye + world_fwd;
+            process->view.lookat.up     = world_up;
+        }
+    }
+#endif
+
     mDoMtx_lookAt(process->view.viewMtx, &process->view.lookat.eye, &process->view.lookat.center,
                   &process->view.lookat.up, process->view.bank);
+
 
 #if WIDESCREEN_SUPPORT
     mDoGph_gInf_c::setWideZoomProjection(process->view.projMtx);
