@@ -276,6 +276,15 @@ if (DUSK_ENABLE_SENTRY_NATIVE)
     endif ()
 endif ()
 
+message(STATUS "dusk: Fetching OpenXR-SDK")
+set(DYNAMIC_LOADER ON CACHE BOOL "" FORCE)
+FetchContent_Declare(openxr
+    GIT_REPOSITORY https://github.com/KhronosGroup/OpenXR-SDK.git
+    GIT_TAG release-1.0.34
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(openxr)
+
 if (CMAKE_SYSTEM_NAME STREQUAL Windows)
     set(PLATFORM_NAME win32)
 elseif (CMAKE_SYSTEM_NAME STREQUAL Darwin)

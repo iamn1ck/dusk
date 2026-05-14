@@ -36,9 +36,10 @@ fi
 copy_lib() {
   local abi="$1"
   local src="$2"
+  local dest_name="${3:-libmain.so}"
   local dst_dir="$APP_DIR/$abi"
-  local dst="$dst_dir/libmain.so"
-  local tmp="$dst_dir/.libmain.so.$$"
+  local dst="$dst_dir/$dest_name"
+  local tmp="$dst_dir/.$dest_name.$$"
   if [[ ! -f "$src" ]]; then
     echo "Missing native library for $abi: $src" >&2
     exit 1
@@ -61,12 +62,22 @@ rm -rf "$APP_DIR/x86" "$APP_DIR/arm64-v8a" "$APP_DIR/x86_64"
 
 for abi in $ANDROID_STAGE_ABIS; do
   case "$abi" in
-    arm64-v8a) src="$ROOT_DIR/build/android-arm64/libmain.so" ;;
-    x86_64) src="$ROOT_DIR/build/android-x86_64/libmain.so" ;;
+    arm64-v8a) 
+      src="$ROOT_DIR/build/android-arm64/libmain.so" 
+      openxr_src="$ROOT_DIR/libs/openxr/android/arm64-v8a/libopenxr_loader.so"
+      ;;
+    x86_64) 
+      src="$ROOT_DIR/build/android-x86_64/libmain.so" 
+      openxr_src="$ROOT_DIR/libs/openxr/android/x86_64/libopenxr_loader.so"
+      ;;
     *)
       echo "Unsupported ABI '$abi'. Supported ABIs: arm64-v8a x86_64" >&2
       exit 1
       ;;
   esac
-  copy_lib "$abi" "$src"
+  copy_lib "$abi" "$src" "libmain.so"
+  
+  if [[ -f "$openxr_src" ]]; then
+    copy_lib "$abi" "$openxr_src" "libopenxr_loader.so"
+  fi
 done
