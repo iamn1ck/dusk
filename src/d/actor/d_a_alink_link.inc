@@ -109,7 +109,36 @@ BOOL daAlink_c::setBodyAngleToCamera() {
         onEndResetFlg2(ERFLG2_UNK_20);
 
         s16 sp8;
+        bool stickUsedForRotation = false;
+
+#if TARGET_PC
+        f32 cStickValue = mDoCPd_c::getSubStickValue(PAD_1);
+        if (cStickValue > 0.05f) {
+            f32 var_f31 = 512.0f * cStickValue * cStickValue;
+            s16 cStickAngle = mDoCPd_c::getSubStickAngle(PAD_1) - -0x8000;
+
+            if (checkWolfEyeUp()) {
+                var_f31 *= 0.6f;
+            }
+
+            if (dComIfGp_checkPlayerStatus0(0, 0x200000)) {
+                var_f31 /= dComIfGp_getCameraZoomScale(field_0x317c);
+            }
+
+            shape_angle.y = shape_angle.y + (var_f31 * cM_ssin(cStickAngle) * (dusk::getSettings().game.invertFirstPersonXAxis ? -1.0f : 1.0f));
+            sp8 = mBodyAngle.x + (var_f31 * cM_scos(cStickAngle) * (dusk::getSettings().game.invertFirstPersonYAxis ? -1.0f : 1.0f));
+            stickUsedForRotation = true;
+        } else {
+            sp8 = mBodyAngle.x;
+        }
+
+        bool gyroActive = dusk::getSettings().game.enableGyroAim && checkGyroAimContext();
+        // If gyro is active or C-stick is moved, the main stick is freed for movement.
+        // Otherwise, if the main stick is moved, it still rotates the camera for single-stick users.
+        if (!gyroActive && !stickUsedForRotation && checkInputOnR()) {
+#else
         if (checkInputOnR()) {
+#endif
             f32 var_f31 = 512.0f * mMoveValue * mMoveValue;
             if (checkWolfEyeUp()) {
                 var_f31 *= 0.6f;
@@ -125,12 +154,10 @@ BOOL daAlink_c::setBodyAngleToCamera() {
             if (checkNotItemSinkLimit() && sp8 > 0 && sp8 > mBodyAngle.x) {
                 sp8 = mBodyAngle.x;
             }
-        } else {
-            sp8 = mBodyAngle.x;
         }
 
 #if TARGET_PC
-        if (dusk::getSettings().game.enableGyroAim && checkGyroAimContext()) {
+        if (gyroActive) {
             f32 gyro_scale = 1.0f;
             if (checkWolfEyeUp()) {
                 gyro_scale *= 0.6f;
@@ -146,10 +173,6 @@ BOOL daAlink_c::setBodyAngleToCamera() {
 
             shape_angle.y = shape_angle.y + cM_rad2s(gy_yaw * gyro_scale * (dusk::getSettings().game.invertFirstPersonXAxis ? -1.0f : 1.0f));
             sp8 = sp8 + cM_rad2s(gy_pitch * gyro_scale * (dusk::getSettings().game.invertFirstPersonYAxis ? -1.0f : 1.0f));
-
-            if (checkNotItemSinkLimit() && sp8 > 0 && sp8 > mBodyAngle.x) {
-                sp8 = mBodyAngle.x;
-            }
         }
 #endif
 
@@ -259,6 +282,21 @@ int daAlink_c::procCoSubjectivity() {
         return 1;
     } else {
         setBodyAngleToCamera();
+
+#if TARGET_PC
+        // Allow character movement in first person
+        if (mMoveValue > 0.05f) {
+            mNormalSpeed = mMoveValue * mMaxSpeed * 0.8f;
+            setBlendMoveAnime(-1.0f);
+        } else {
+            mNormalSpeed = 0.0f;
+            if (checkWolf()) {
+                setSingleAnimeWolfBaseSpeed(WANM_WAIT, 0.0f, 3.0f);
+            } else {
+                setSingleAnimeBaseSpeed(ANM_WAIT, 0.0f, 3.0f);
+            }
+        }
+#endif
     }
 
     return 1;
@@ -306,6 +344,23 @@ int daAlink_c::procCoSwimSubjectivity() {
         }
     } else {
         setBodyAngleToCamera();
+
+#if TARGET_PC
+        // Allow character movement in first person swim
+        if (mMoveValue > 0.05f) {
+            mNormalSpeed = mMoveValue * mMaxSpeed * 0.8f;
+            setSingleAnimeBaseMorf(ANM_SWIM_A, mpHIO->mSwim.m.mMoveInterpolation);
+        } else {
+            mNormalSpeed = 0.0f;
+            if (checkWolf()) {
+                setSingleAnimeWolfBaseSpeed(WANM_SWIM_WAIT, mpHIO->mWolf.mWlSwim.m.mIdleAnmSpeedWeak,
+                                            mpHIO->mWolf.mWlSwim.m.mIdleInterp);
+            } else {
+                setSingleAnimeBaseSpeed(ANM_SWIM_WAIT, mpHIO->mSwim.m.mWaitAnmSpeed,
+                                        mpHIO->mSwim.m.mWaitInterpolation);
+            }
+        }
+#endif
     }
 
     return 1;

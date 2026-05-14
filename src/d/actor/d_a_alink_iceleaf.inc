@@ -624,9 +624,15 @@ int daAlink_c::procBoardSubjectivity() {
     s16 old_shape_angle = shape_angle.y;
     s16 old_angle = current.angle.y;
 
+#if TARGET_PC
+    if (boardCommon(mMoveValue > 0.05f)) {
+        return 1;
+    }
+#else
     if (boardCommon(FALSE)) {
         return 1;
     }
+#endif
 
     shape_angle.y = old_shape_angle;
 

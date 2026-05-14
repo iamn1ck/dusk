@@ -236,6 +236,7 @@ JASGenericMemPool::JASGenericMemPool() {
     freeMemCount = 0;
     totalMemCount = 0;
     usedMemCount = 0;
+    mName = NULL;
 }
 
 JASGenericMemPool::~JASGenericMemPool() {
@@ -269,6 +270,7 @@ void JASGenericMemPool::newMemPool(u32 n, int param_1) {
 
 void* JASGenericMemPool::alloc(u32 param_0) {
     if (field_0x0 == NULL) {
+        OSReport("JASGenericMemPool: Pool exhaustion at %p! Returning NULL.\n", this);
         return NULL;
     }
     void* chunk = field_0x0;

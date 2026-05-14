@@ -31,20 +31,20 @@ Z2AudioMgr::Z2AudioMgr() : mSoundStarter(true) {
 void Z2AudioMgr::init(JKRSolidHeap* heap, u32 memSize, void* baaData, JKRArchive* seqArc) {
     JAU_JASInitializer JASInitializer;
     JASInitializer.audioMemSize_ = memSize;
-    JASInitializer.mJasTrackPoolSize = 140;
+    JASInitializer.mJasTrackPoolSize = 512;
     JASInitializer.dspLevel_ = 1.3f;
     JASInitializer.waveArcDir_ = "Audiores/Waves/";
     JASInitializer.initJASystem(heap);
 
     JAU_JAIInitializer JAIInitializer;
-    JAIInitializer.mJaiSePoolSize = 78;
-    JAIInitializer.mJaiSeqPoolSize = 4;
-    JAIInitializer.mJaiSoundChildPoolSize = 48;
+    JAIInitializer.mJaiSePoolSize = 8192;
+    JAIInitializer.mJaiSeqPoolSize = 8;
+    JAIInitializer.mJaiSoundChildPoolSize = 4096;
     JAIInitializer.initJAInterface();
     
     JAISeMgr* seMgr = mSoundMgr.getSeMgr();
 
-    JAISeCategoryArrangement categoryArrangement;
+    JAISeCategoryArrangement categoryArrangement = {};
     categoryArrangement.mItems[0].mMaxActiveSe = 4;
     categoryArrangement.mItems[0].mMaxInactiveSe = 2;
     categoryArrangement.mItems[1].mMaxActiveSe = 2;
@@ -96,7 +96,7 @@ void Z2AudioMgr::init(JKRSolidHeap* heap, u32 memSize, void* baaData, JKRArchive
     streamMgr->setStreamAramMgr(streamStaticAramMgr);
     streamMgr->getParams()->moveVolume(Z2Param::VOL_BGM_DEFAULT, 0);
 
-    JASPoolAllocObject<Z2Audible>::newMemPool(0x4e);
+    JASPoolAllocObject<Z2Audible>::newMemPool(4096);
     mSoundMgr.getSeMgr()->setAudience(&mAudience);
     mSoundMgr.getSeqMgr()->setAudience(&mAudience);
 
@@ -104,7 +104,7 @@ void Z2AudioMgr::init(JKRSolidHeap* heap, u32 memSize, void* baaData, JKRArchive
     Z2AudioCS::newSpkSoundMemPool();
     #endif
 
-    JASPoolAllocObject<Z2SoundHandlePool>::newMemPool(0x4e);
+    JASPoolAllocObject<Z2SoundHandlePool>::newMemPool(4096);
     OS_REPORT("[Z2AudioMgr::init]before Create Section: %d\n", heap->getFreeSize());
 
     JAUSectionHeap* sectionHeap = JAUNewSectionHeap(true);

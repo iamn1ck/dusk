@@ -153,8 +153,7 @@ Z2SoundHandlePool* Z2SoundObjBase::startLevelSound(JAISoundID soundID, u32 mapin
     f32 fxMix = (f32)reverb / 127.0f;
 
     Z2SoundHandlePool* handle = getHandleSoundID(soundID);
-    if (handle != NULL) {
-        JUT_ASSERT_MSG(218, *handle, "handle exist, but (*handle) is not exist!!\n");
+    if (handle != NULL && *handle) {
         (*handle)->updateLifeTime(1);
         soundStarter_->setPortData(handle, 6, (u16)mapinfo, -1);
         (*handle)->getAuxiliary().moveFxMix(fxMix, 0);
@@ -217,7 +216,7 @@ Z2SoundHandlePool* Z2SoundObjBase::startCollisionSE(u32 hitID, u32 mapinfo, Z2So
     }
 
     Z2SoundHandlePool* handle = Z2SoundObjBase::startSound(JAISoundID(hitID), mapinfo, -1);
-    if (handle != NULL && (*handle) != false) {
+    if (handle != NULL && *handle) {
         (*handle)->setUserData(mapinfo);
         if (30 <= mapinfo && mapinfo <= 52) {
             Z2Audible* audible = (Z2Audible*)(*handle)->getAudible();
@@ -526,10 +525,10 @@ void Z2SoundObjAnime::startSoundInner(const JGeometry::TVec3<f32>& pos, f32 para
             }
 
             if (handle != NULL) {
-                bool result = soundStarter->startSound(id, handle, &pos, mapinfo, (f32)reverb / 127.0f,
-                                                       animationSound->field_0x0c, (f32)animationSound->field_0x14 / 127.0f,
-                                                       -1.0f, -1.0f, 0);
-                if ((*handle) != false) {
+                soundStarter->startSound(id, handle, &pos, mapinfo, (f32)reverb / 127.0f,
+                                       animationSound->field_0x0c, (f32)animationSound->field_0x14 / 127.0f,
+                                       -1.0f, -1.0f, 0);
+                if (handle != NULL && (*handle) != false) {
                     (*handle)->setAnimationState(1);
                     (*handle)->setUserData(user_data);
                     if (animationSound->setsLifeTime()) {

@@ -23,7 +23,7 @@ JAU_JASInitializer::JAU_JASInitializer() {
     dvdThreadId_ = -1;
     audioThreadId_ = -1;
 #if TARGET_PC
-    heapSize_ = 0x4000;
+    heapSize_ = 0x8000;
 #else
     heapSize_ = 0x1000;
 #endif

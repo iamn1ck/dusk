@@ -1892,9 +1892,20 @@ int daAlink_c::procHorseSubjectivity() {
     s16 prev_angle = current.angle.y;
     int prev_3190 = field_0x3190;
 
+#if TARGET_PC
+    if (!setSyncRide(mMoveValue > 0.05f)) {
+        return 1;
+    }
+
+    daHorse_c* horse_p = dComIfGp_getHorseActor();
+    if (horse_p && mMoveValue > 0.05f) {
+        horse_p->onMoveAccept();
+    }
+#else
     if (!setSyncRide(0)) {
         return 1;
     }
+#endif
 
     shape_angle.y = prev_shape_angle;
     if (checkSubjectEnd(TRUE)) {

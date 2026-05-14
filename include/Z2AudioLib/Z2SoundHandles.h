@@ -27,9 +27,8 @@ public:
     void stopAllSounds(u32 fadeTime);
 
     void stopSound(JAISoundID soundID, u32 fadeTime) {
-        // u32 cast is a fakematch
         JAISoundHandle* phandle = getHandleSoundID((u32)soundID);
-        if (phandle != NULL) {
+        if (phandle != NULL && (*phandle) != NULL) {
             (*phandle)->stop(fadeTime);
         }
     }

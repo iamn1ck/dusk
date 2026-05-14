@@ -192,6 +192,9 @@ bool JAISound::calc_JAISound_() {
 }
 
 void JAISound::initTrack_JAISound_(JASTrack* track) {
+    if (audible_ == NULL) {
+        return;
+    }
     JASSoundParams* soundParams[JASTrack::TChannelMgr::CHANNEL_MAX];
     JUT_ASSERT(286, audience_);
     JUT_ASSERT(287, audible_);

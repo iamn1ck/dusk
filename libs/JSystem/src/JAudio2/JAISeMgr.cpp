@@ -58,7 +58,7 @@ void JAISeCategoryMgr::JAISeMgr_freeDeadSe_() {
 bool JAISeCategoryMgr::JAISeMgr_acceptsNewSe_(u32 priority) const {
     s32 maxSe = getMaxSe();
     if (maxSe <= 0) {
-        return 1;
+        return 0;
     } 
 
     s32 stopCount = 0;
@@ -260,7 +260,7 @@ JAISe* JAISeMgr::newSe_(int category, u32 priority) {
 
     JAISe* se = JKR_NEW JAISe(this, mStrategyMgr, priority);
     if (se == NULL) {
-        JUT_WARN(410, "%s", "JASPoolAllocObject::<JAISe>::operator new failed .\n")
+        OSReport("JAISeMgr: Failed to allocate JAISe! Category: %d, Priority: %d\n", category, priority);
         return NULL;
     }
 

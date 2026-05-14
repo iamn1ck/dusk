@@ -3,6 +3,7 @@
 
 #include "JSystem/JKernel/JKRHeap.h"
 #include "JSystem/JSupport/JSUList.h"
+#include <typeinfo>
 #include "JSystem/JUtility/JUTAssert.h"
 #include <os.h>
 #include <os.h>
@@ -52,6 +53,10 @@ struct JASGenericMemPool {
     JASGenericMemPool();
     ~JASGenericMemPool();
     void newMemPool(u32, int);
+    void newMemPool(const char* name, u32 n, int count) {
+        mName = name;
+        newMemPool(n, count);
+    }
     void* alloc(u32);
     void free(void*, u32);
 
@@ -66,7 +71,8 @@ struct JASGenericMemPool {
     /* 0x00 */ void* field_0x0;
     /* 0x04 */ u32 freeMemCount;
     /* 0x08 */ u32 totalMemCount;
-    /* 0x0C */ u32 usedMemCount;
+    /* 0x10 */ u32 usedMemCount;
+    /* 0x14 */ const char* mName;
 };
 
 namespace JASThreadingModel {
@@ -118,6 +124,10 @@ public:
     void newMemPool(int param_0) {
         typename JASThreadingModel::SingleThreaded<JASMemPool<T> >::Lock lock(*this);
         JASGenericMemPool::newMemPool(sizeof(T), param_0);
+    }
+    void newMemPool(const char* name, int count) {
+        typename JASThreadingModel::SingleThreaded<JASMemPool<T> >::Lock lock(*this);
+        JASGenericMemPool::newMemPool(name, sizeof(T), count);
     }
 
     void* alloc(u32 n) {
@@ -296,7 +306,15 @@ public:
 #if PLATFORM_GCN
         JASMemPool<T>& memPool_ = getMemPool_();
 #endif
-        return memPool_.alloc(n);
+        void* ptr = memPool_.alloc(n);
+        if (ptr == NULL) {
+            OSReport("JASPoolAllocObject<%s>: Pool exhaustion! Active: %d, Total: %d\n", 
+                     memPool_.mName ? memPool_.mName : "Unknown",
+                     memPool_.getTotalMemCount() - memPool_.getFreeMemCount(),
+                     memPool_.getTotalMemCount());
+            return NULL;
+        }
+        return ptr;
     }
     static void* operator new(size_t n, void* ptr) {
         return ptr;
@@ -318,7 +336,7 @@ public:
 #if PLATFORM_GCN
         JASMemPool<T>& memPool_ = getMemPool_();
 #endif
-        memPool_.newMemPool(param_0);
+        memPool_.newMemPool(typeid(T).name(), param_0);
     }
     static u32 getFreeMemCount() {
 #if PLATFORM_GCN
@@ -411,7 +429,12 @@ public:
 #if PLATFORM_GCN
         JASMemPool_MultiThreaded<T>& memPool_ = getMemPool();
 #endif
-        return memPool_.alloc(n);
+        void* ptr = memPool_.alloc(n);
+        if (ptr == NULL) {
+            OSReport("JASPoolAllocObject_MultiThreaded: Pool exhaustion, returning NULL\n");
+            return NULL;
+        }
+        return ptr;
     }
     static void* operator new(size_t n, void* ptr) {
         return ptr;

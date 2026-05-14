@@ -101,7 +101,7 @@ OSTime mDoMain::sHungUpTime;
 u32 mDoMain::memMargin = 0xFFFFFFFF;
 char mDoMain::COPYDATE_STRING[18] = "??/??/?? ??:??:??";
 #if TARGET_PC
-const int audioHeapSize = 0x14D800 * 2;
+const int audioHeapSize = 0x14D800 * 8;
 #else
 const int audioHeapSize = 0x14D800;
 #endif
