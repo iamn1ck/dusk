@@ -56,7 +56,7 @@ jobs:
         run: sccache --show-stats
 
       - name: Configure CMake
-        run: cmake --preset x-linux-ci-${{matrix.preset}}
+        run: cmake --preset x-linux-ci-${{matrix.preset}} -DAURORA_ENABLE_XR=ON
 
       - name: Build
         run: cmake --build --preset x-linux-ci-${{matrix.preset}}
@@ -118,7 +118,7 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.10
 
       - name: Configure CMake
-        run: cmake --preset ${{matrix.preset}}
+        run: cmake --preset ${{matrix.preset}} -DAURORA_ENABLE_XR=ON
 
       - name: Build native library
         run: cmake --build --preset ${{matrix.preset}} --target dusklight
@@ -192,7 +192,7 @@ jobs:
           install_runtime: true
 
       - name: Configure CMake
-        run: cmake --preset x-windows-ci-${{matrix.preset}} -DVulkan_ROOT=$env:VULKAN_SDK
+        run: cmake --preset x-windows-ci-${{matrix.preset}} -DVulkan_ROOT=$env:VULKAN_SDK -DAURORA_ENABLE_XR=ON
 
       - name: Build
         run: cmake --build --preset x-windows-ci-${{matrix.preset}}
