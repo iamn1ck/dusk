@@ -120,6 +120,21 @@ jobs:
       - name: Configure CMake
         run: cmake --preset ${{matrix.preset}}
 
+      - name: Patch Dawn for Android Vulkan extensions
+        run: |
+          DAWN_BACKEND_VK="build/android-arm64/_deps/dawn-src/src/dawn/native/vulkan/BackendVk.cpp"
+          PATCH_FILE="patches/dawn-android-xr-extensions.patch"
+          if [ -f "$DAWN_BACKEND_VK" ] && [ -f "$PATCH_FILE" ]; then
+            if ! grep -q "kXrRequiredExts" "$DAWN_BACKEND_VK"; then
+              patch -p1 -d build/android-arm64/_deps/dawn-src < "$PATCH_FILE" && echo "Dawn patch applied" || echo "Dawn patch failed (may already be applied)"
+            else
+              echo "Dawn patch already applied, skipping"
+            fi
+          else
+            echo "Error: Dawn native Vulkan backend source or patch file not found."
+            exit 1
+          fi
+
       - name: Build native library
         run: cmake --build --preset ${{matrix.preset}} --target dusklight
 
