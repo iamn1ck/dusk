@@ -4,6 +4,7 @@
 #include "mtx.h"
 #include "f_op/f_op_camera_mng.h"
 #include "m_Do/m_Do_graphic.h"
+#include "dusk/vr.hpp"
 
 namespace {
 
@@ -372,6 +373,46 @@ void begin_presentation_camera() {
 
     std::memcpy(&s_presentation_view_backup, view, sizeof(view_class));
     interp_view(view);
+
+    // Apply VR head-pose rotation on top of the interpolated lookat so that
+    // all objects drawn during the presentation camera phase also see the
+    // rotated view (mirrors the same override done in camera_draw).
+    {
+        float qx, qy, qz, qw;
+        if (dusk::vr::get_head_pose(qx, qy, qz, qw)) {
+            const cXyz& eye = view->lookat.eye;
+            const cXyz& orig_center = view->lookat.center;
+            const cXyz& orig_up = view->lookat.up;
+
+            // Calculate game's intended direction vectors (orthonormal basis)
+            cXyz game_fwd = (orig_center - eye).norm();
+            cXyz game_right = game_fwd.getCrossProduct(orig_up).norm();
+            cXyz game_up = game_right.getCrossProduct(game_fwd).norm();
+
+            auto rotate_by_quat = [&](float vx, float vy, float vz) -> cXyz {
+                float tx = 2.0f * (qy * vz - qz * vy);
+                float ty = 2.0f * (qz * vx - qx * vz);
+                float tz = 2.0f * (qx * vy - qy * vx);
+                return cXyz(
+                    vx + qw * tx + (qy * tz - qz * ty),
+                    vy + qw * ty + (qz * tx - qx * tz),
+                    vz + qw * tz + (qx * ty - qy * tx)
+                );
+            };
+
+            // HMD-local vectors (OpenXR: identity forward = -Z, up = +Y)
+            cXyz local_fwd = rotate_by_quat(0.0f, 0.0f, -1.0f);
+            cXyz local_up  = rotate_by_quat(0.0f, 1.0f,  0.0f);
+
+            // Transform HMD-local vectors to world space using the game's orientation as the base
+            // Basis: X = game_right, Y = game_up, Z = -game_fwd
+            cXyz world_fwd = game_right * local_fwd.x + game_up * local_fwd.y + (game_fwd * -1.0f) * local_fwd.z;
+            cXyz world_up  = game_right * local_up.x  + game_up * local_up.y  + (game_fwd * -1.0f) * local_up.z;
+
+            view->lookat.center = eye + world_fwd;
+            view->lookat.up     = world_up;
+        }
+    }
 
     // FRAME INTERP TODO: Largely copied from d_camera's camera_draw function from this point, got any better ideas?
     C_MTXPerspective(view->projMtx, view->fovy, view->aspect, view->near_, view->far_);

@@ -1,0 +1,38 @@
+--- src/dawn/native/vulkan/BackendVk.cpp
++++ src/dawn/native/vulkan/BackendVk.cpp
+@@ -460,6 +460,35 @@ ResultOrError<VulkanGlobalKnobs> VulkanInstance::CreateVkInstance(const Instance
+     std::vector<const char*> extensionNames;
+     for (InstanceExt ext : extensionsToRequest) {
+         const InstanceExtInfo& info = GetInstanceExtInfo(ext);
+         extensionNames.push_back(info.name);
+     }
+ 
++#if DAWN_PLATFORM_IS(ANDROID)
++    // The Meta OVR Vulkan runtime (ovrVulkanLoader) explicitly checks for these extensions by
++    // name even though they are promoted to Vulkan 1.1 core. Request them if available so that
++    // xrGetVulkanGraphicsDeviceKHR succeeds and OpenXR session initialization doesn't abort.
++    {
++        static const char* kXrRequiredExts[] = {
++            "VK_KHR_get_physical_device_properties2",
++            "VK_KHR_external_memory_capabilities",
++            "VK_KHR_external_fence_capabilities",
++            "VK_KHR_external_semaphore_capabilities",
++        };
++        uint32_t availCount = 0;
++        mFunctions.EnumerateInstanceExtensionProperties(nullptr, &availCount, nullptr);
++        std::vector<VkExtensionProperties> avail(availCount);
++        mFunctions.EnumerateInstanceExtensionProperties(nullptr, &availCount, avail.data());
++        for (const char* xrExt : kXrRequiredExts) {
++            bool alreadyPresent = false;
++            for (const char* n : extensionNames)
++                if (strcmp(n, xrExt) == 0) { alreadyPresent = true; break; }
++            if (alreadyPresent) continue;
++            for (const auto& ep : avail)
++                if (strcmp(ep.extensionName, xrExt) == 0) { extensionNames.push_back(xrExt); break; }
++        }
++    }
++#endif  // DAWN_PLATFORM_IS(ANDROID)
++
+     VkApplicationInfo appInfo;
+     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+     appInfo.pNext = nullptr;
