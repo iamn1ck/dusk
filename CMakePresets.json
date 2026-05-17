@@ -465,11 +465,7 @@
       "cacheVariables": {
         "AURORA_DAWN_PROVIDER": "vendor",
         "AURORA_DAWN_LINKAGE": "static",
-        "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded",
-        "CMAKE_TOOLCHAIN_FILE": {
-          "type": "FILEPATH",
-          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-        }
+        "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded"
       }
     },
     {
@@ -477,30 +473,21 @@
       "inherits": [
         "x-windows-ci",
         "windows-msvc"
-      ],
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x64-windows-static"
-      }
+      ]
     },
     {
       "name": "x-windows-ci-clang",
       "inherits": [
         "x-windows-ci",
         "windows-clang"
-      ],
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x64-windows-static"
-      }
+      ]
     },
     {
       "name": "x-windows-ci-arm64-msvc",
       "inherits": [
         "x-windows-ci",
         "windows-arm64-msvc"
-      ],
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "arm64-windows-static"
-      }
+      ]
     }
   ],
   "buildPresets": [
