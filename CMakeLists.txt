@@ -471,6 +471,20 @@ if (TARGET crashpad_handler)
     )
 endif ()
 
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+    add_library(vulkan_xr_hook SHARED src/vulkan_xr_hook.c)
+    target_link_libraries(vulkan_xr_hook PRIVATE ${CMAKE_DL_LIBS})
+    target_include_directories(vulkan_xr_hook PRIVATE ${Vulkan_INCLUDE_DIRS})
+    
+    add_custom_command(TARGET dusklight POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:vulkan_xr_hook>"
+            "$<TARGET_FILE_DIR:dusklight>"
+        COMMENT "Copying Vulkan XR hook library"
+    )
+    install(TARGETS vulkan_xr_hook DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif ()
+
 if (ANDROID)
     # SDLActivity loads SDL_main via dlsym on Android. Since aurora::main is a static
     # archive, force an undefined reference so the linker keeps the SDL_main object.

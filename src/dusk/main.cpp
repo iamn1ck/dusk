@@ -209,6 +209,32 @@ int RunWindowsGuiEntryPoint() {
 }
 #else
 int DuskMain(int argc, char* argv[]) {
+#if defined(__linux__)
+    // Automatically preload our Vulkan XR hook library if it's next to the executable
+    const char* ld_preload = std::getenv("LD_PRELOAD");
+    if (!ld_preload || std::string_view(ld_preload).find("libvulkan_xr_hook.so") == std::string_view::npos) {
+        // Resolve executable directory path
+        std::array<char, 4096> path{};
+        const ssize_t len = readlink("/proc/self/exe", path.data(), path.size() - 1);
+        if (len > 0) {
+            path[static_cast<size_t>(len)] = '\0';
+            std::filesystem::path exe_dir = std::filesystem::path(path.data()).parent_path();
+            std::filesystem::path hook_path = exe_dir / "libvulkan_xr_hook.so";
+            if (std::filesystem::exists(hook_path)) {
+                std::string new_preload = hook_path.string();
+                if (ld_preload && ld_preload[0] != '\0') {
+                    new_preload = new_preload + ":" + ld_preload;
+                }
+                setenv("LD_PRELOAD", new_preload.c_str(), 1);
+                fprintf(stderr, "[vulkan_xr_hook] Relaunching with LD_PRELOAD=%s\n", new_preload.c_str());
+                if (RestartProcess(argc, argv)) {
+                    return 0;
+                }
+            }
+        }
+    }
+#endif
+
     const int result = game_main(argc, argv);
     if (dusk::RestartRequested && RestartProcess(argc, argv)) {
         return 0;
