@@ -8,13 +8,14 @@ on:
   pull_request:
 
 env:
+  SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
   SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
 jobs:
   build-windows-xr:
     name: Build Windows (${{matrix.name}})
-    runs-on: self-hosted
+    runs-on: ${{matrix.runner}}
 
     strategy:
       fail-fast: false
@@ -54,18 +55,18 @@ jobs:
       - name: Override VCPKG_ROOT
         run: echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
 
-      - name: Verify sccache
-        shell: powershell
-        run: |
-          where.exe sccache
-          sccache --version
-          sccache --start-server
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Install dependencies
         run: |
           choco install ninja
           vcpkg install freetype:${{matrix.vcpkg_arch}}-windows zstd:${{matrix.vcpkg_arch}}-windows
 
+      - name: Install Vulkan SDK
+        uses: jakoch/install-vulkan-sdk-action@v1.5.2
+        with:
+          install_runtime: true
 
       - name: Configure CMake
         run: cmake --preset x-windows-ci-${{matrix.preset}} -DVulkan_ROOT=$env:VULKAN_SDK
