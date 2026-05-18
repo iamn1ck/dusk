@@ -55,8 +55,12 @@ jobs:
       - name: Override VCPKG_ROOT
         run: echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
 
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
+      - name: Verify sccache
+        shell: powershell
+        run: |
+          where.exe sccache
+          sccache --version
+          sccache --start-server
 
       - name: Install dependencies
         run: |
