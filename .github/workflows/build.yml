@@ -66,10 +66,6 @@ jobs:
           choco install ninja
           vcpkg install freetype:${{matrix.vcpkg_arch}}-windows zstd:${{matrix.vcpkg_arch}}-windows
 
-      - name: Install Vulkan SDK
-        uses: jakoch/install-vulkan-sdk-action@v1.5.2
-        with:
-          install_runtime: true
 
       - name: Configure CMake
         run: cmake --preset x-windows-ci-${{matrix.preset}} -DVulkan_ROOT=$env:VULKAN_SDK
